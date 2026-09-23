@@ -22,8 +22,9 @@ jobs:
           submodules: recursive
 
       - name: Build Imprint Keyboards
+        shell: bash
         run: |
-          git config --global --add safe.directory $(pwd)
+          git config --global --add safe.directory "$(pwd)"
           mkdir -p artifacts
 
           CONFIGS=(
@@ -39,7 +40,7 @@ jobs:
 
           for cfg in "${CONFIGS[@]}"; do
             echo "::group::Building cyboard/${cfg}:vial"
-            make "cyboard/${cfg}:vial" || true
+            make "cyboard/${cfg}:vial"
             echo "::endgroup::"
           done
 
