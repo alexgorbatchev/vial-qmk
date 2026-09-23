@@ -179,7 +179,15 @@ static void maybe_update_pointing_device_cpi(charybdis_config_t* config, bool is
  * @param is_left If `true`, update the left side; if `false`, update the right side.
  */
 static void step_pointer_default_dpi(charybdis_config_t* config, bool forward, bool is_left) {
-    config->pointer_default_dpi += forward ? 1 : -1;
+    if (forward) {
+        if (config->pointer_default_dpi < 15) {
+            config->pointer_default_dpi++;
+        }
+    } else {
+        if (config->pointer_default_dpi > 0) {
+            config->pointer_default_dpi--;
+        }
+    }
 
     // Pass the side information to the CPI update function.
     maybe_update_pointing_device_cpi(config, is_left);
@@ -193,7 +201,15 @@ static void step_pointer_default_dpi(charybdis_config_t* config, bool forward, b
  * The increment/decrement steps are equal to CHARYBDIS_SNIPING_DPI_CONFIG_STEP.
  */
 static void step_pointer_sniping_dpi(charybdis_config_t* config, bool forward, bool is_left) {
-    config->pointer_sniping_dpi += forward ? 1 : -1;
+    if (forward) {
+        if (config->pointer_sniping_dpi < 3) {
+            config->pointer_sniping_dpi++;
+        }
+    } else {
+        if (config->pointer_sniping_dpi > 0) {
+            config->pointer_sniping_dpi--;
+        }
+    }
 
     // Pass the side information to the CPI update function.
     maybe_update_pointing_device_cpi(config, is_left);
@@ -278,31 +294,37 @@ void charybdis_set_pointer_dragscroll_enabled_advanced(bool enable, bool is_left
 }/**
  * \brief Augment the pointing device behavior.
  *
- * Implement drag-scroll.
+ * Implement drag-scroll with independent buffers for left and right hands.
  */
 static void pointing_device_task_charybdis(report_mouse_t* mouse_report, bool is_left) {
-    static int16_t scroll_buffer_x = 0;
-    static int16_t scroll_buffer_y = 0;
+    static int16_t scroll_buffer_left_x = 0;
+    static int16_t scroll_buffer_left_y = 0;
+    static int16_t scroll_buffer_right_x = 0;
+    static int16_t scroll_buffer_right_y = 0;
+
+    int16_t* scroll_buffer_x = is_left ? &scroll_buffer_left_x : &scroll_buffer_right_x;
+    int16_t* scroll_buffer_y = is_left ? &scroll_buffer_left_y : &scroll_buffer_right_y;
+
     if (charybdis_get_pointer_dragscroll_enabled(is_left)) {
 #    ifdef CHARYBDIS_DRAGSCROLL_REVERSE_X
-        scroll_buffer_x -= mouse_report->x;
+        *scroll_buffer_x -= mouse_report->x;
 #    else
-        scroll_buffer_x += mouse_report->x;
+        *scroll_buffer_x += mouse_report->x;
 #    endif // CHARYBDIS_DRAGSCROLL_REVERSE_X
 #    ifdef CHARYBDIS_DRAGSCROLL_REVERSE_Y
-        scroll_buffer_y -= mouse_report->y;
+        *scroll_buffer_y -= mouse_report->y;
 #    else
-        scroll_buffer_y += mouse_report->y;
+        *scroll_buffer_y += mouse_report->y;
 #    endif // CHARYBDIS_DRAGSCROLL_REVERSE_Y
         mouse_report->x = 0;
         mouse_report->y = 0;
-        if (abs(scroll_buffer_x) > CHARYBDIS_DRAGSCROLL_BUFFER_SIZE) {
-            mouse_report->h = scroll_buffer_x > 0 ? 1 : -1;
-            scroll_buffer_x = 0;
+        if (abs(*scroll_buffer_x) > CHARYBDIS_DRAGSCROLL_BUFFER_SIZE) {
+            mouse_report->h = *scroll_buffer_x > 0 ? 1 : -1;
+            *scroll_buffer_x = 0;
         }
-        if (abs(scroll_buffer_y) > CHARYBDIS_DRAGSCROLL_BUFFER_SIZE) {
-            mouse_report->v = scroll_buffer_y > 0 ? 1 : -1;
-            scroll_buffer_y = 0;
+        if (abs(*scroll_buffer_y) > CHARYBDIS_DRAGSCROLL_BUFFER_SIZE) {
+            mouse_report->v = *scroll_buffer_y > 0 ? 1 : -1;
+            *scroll_buffer_y = 0;
         }
     }
 }
