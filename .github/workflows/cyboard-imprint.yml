@@ -1,0 +1,53 @@
+name: Build Cyboard Imprint Firmware
+on:
+  push:
+    paths:
+      - 'keyboards/cyboard/**'
+      - '.github/workflows/cyboard-imprint.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-imprint:
+    name: Build Cyboard Imprint UF2s
+    runs-on: ubuntu-latest
+    container: ghcr.io/qmk/qmk_cli@sha256:2dc05fc9f32efebd6b05c2b8676ee548358bc7e151e9dbf4dac6b6eed4513b07
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Build Imprint Keyboards
+        run: |
+          git config --global --add safe.directory $(pwd)
+          mkdir -p artifacts
+
+          CONFIGS=(
+            "imprint/imprint_number_row_5key_bottom_row"
+            "imprint/imprint_number_row_2key_bottom_row"
+            "imprint/imprint_number_row_no_bottom_row"
+            "imprint/imprint_function_row_5key_bottom_row"
+            "imprint/imprint_function_row_2key_bottom_row"
+            "imprint/imprint_letters_only_5key_bottom_row"
+            "imprint/imprint_letters_only_2key_bottom_row"
+            "imprint/imprint_letters_only_no_bottom_row"
+          )
+
+          for cfg in "${CONFIGS[@]}"; do
+            echo "::group::Building cyboard/${cfg}:vial"
+            make "cyboard/${cfg}:vial" || true
+            echo "::endgroup::"
+          done
+
+          cp *.uf2 artifacts/ 2>/dev/null || true
+          ls -la artifacts/
+
+      - name: Upload UF2 Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: cyboard-imprint-uf2
+          path: artifacts/*.uf2
