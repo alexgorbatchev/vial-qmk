@@ -27,20 +27,28 @@
 
 #ifdef SPLIT_POINTING_ENABLE
 #    ifndef CHARYBDIS_MINIMUM_DEFAULT_DPI
-#        define CHARYBDIS_MINIMUM_DEFAULT_DPI 400
+#        define CHARYBDIS_MINIMUM_DEFAULT_DPI 100
 #    endif // CHARYBDIS_MINIMUM_DEFAULT_DPI
 
 #    ifndef CHARYBDIS_DEFAULT_DPI_CONFIG_STEP
-#        define CHARYBDIS_DEFAULT_DPI_CONFIG_STEP 200
+#        define CHARYBDIS_DEFAULT_DPI_CONFIG_STEP 100
 #    endif // CHARYBDIS_DEFAULT_DPI_CONFIG_STEP
 
+#    ifndef CHARYBDIS_DEFAULT_DPI_MAX_STEP
+#        define CHARYBDIS_DEFAULT_DPI_MAX_STEP 9 // 10 steps: 100, 200, 300, 400, 500, 600, 700, 800, 900, 1000 DPI
+#    endif // CHARYBDIS_DEFAULT_DPI_MAX_STEP
+
 #    ifndef CHARYBDIS_MINIMUM_SNIPING_DPI
-#        define CHARYBDIS_MINIMUM_SNIPING_DPI 200
+#        define CHARYBDIS_MINIMUM_SNIPING_DPI 100
 #    endif // CHARYBDIS_MINIMUM_SNIPER_MODE_DPI
 
 #    ifndef CHARYBDIS_SNIPING_DPI_CONFIG_STEP
-#        define CHARYBDIS_SNIPING_DPI_CONFIG_STEP 100
+#        define CHARYBDIS_SNIPING_DPI_CONFIG_STEP 50
 #    endif // CHARYBDIS_SNIPING_DPI_CONFIG_STEP
+
+#    ifndef CHARYBDIS_SNIPING_DPI_MAX_STEP
+#        define CHARYBDIS_SNIPING_DPI_MAX_STEP 3 // 4 steps: 100, 150, 200, 250 DPI
+#    endif // CHARYBDIS_SNIPING_DPI_MAX_STEP
 
 // Fixed DPI for drag-scroll.
 #    ifndef CHARYBDIS_DRAGSCROLL_DPI
@@ -180,7 +188,7 @@ static void maybe_update_pointing_device_cpi(charybdis_config_t* config, bool is
  */
 static void step_pointer_default_dpi(charybdis_config_t* config, bool forward, bool is_left) {
     if (forward) {
-        if (config->pointer_default_dpi < 15) {
+        if (config->pointer_default_dpi < CHARYBDIS_DEFAULT_DPI_MAX_STEP) {
             config->pointer_default_dpi++;
         }
     } else {
@@ -202,7 +210,7 @@ static void step_pointer_default_dpi(charybdis_config_t* config, bool forward, b
  */
 static void step_pointer_sniping_dpi(charybdis_config_t* config, bool forward, bool is_left) {
     if (forward) {
-        if (config->pointer_sniping_dpi < 3) {
+        if (config->pointer_sniping_dpi < CHARYBDIS_SNIPING_DPI_MAX_STEP) {
             config->pointer_sniping_dpi++;
         }
     } else {
@@ -471,12 +479,14 @@ bool process_record_kb(uint16_t keycode, keyrecord_t* record) {
 
 
 void eeconfig_init_kb(void) {
-    // Initialize with different defaults: left hand scroll, right hand point
+    // Initialize with different defaults: left hand points (400 DPI), right hand scrolls (100 DPI)
     g_charybdis_config_left.raw = 0;
-    g_charybdis_config_left.is_dragscroll_enabled = true;  // Left hand scrolls by default
+    g_charybdis_config_left.pointer_default_dpi = 3;       // Step 3 = (3 * 100) + 100 = 400 DPI default
+    g_charybdis_config_left.is_dragscroll_enabled = false; // Left hand points by default
     
     g_charybdis_config_right.raw = 0;
-    g_charybdis_config_right.is_dragscroll_enabled = false; // Right hand points by default
+    g_charybdis_config_right.pointer_default_dpi = 3;      // Step 3 = 400 DPI
+    g_charybdis_config_right.is_dragscroll_enabled = true; // Right hand scrolls by default
     
     write_charybdis_config_to_eeprom(&g_charybdis_config_left, &g_charybdis_config_right);
     maybe_update_pointing_device_cpi(&g_charybdis_config_left, true);
