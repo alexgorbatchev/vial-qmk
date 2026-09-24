@@ -110,13 +110,25 @@ static void read_charybdis_config_from_eeprom(charybdis_config_t* left_config, c
     
     // Extract left hand config
     left_config->pointer_default_dpi = dual_config.left_pointer_default_dpi;
+    if (left_config->pointer_default_dpi > CHARYBDIS_DEFAULT_DPI_MAX_STEP) {
+        left_config->pointer_default_dpi = 3; // Clamp stale EEPROM value (400 DPI)
+    }
     left_config->pointer_sniping_dpi = dual_config.left_pointer_sniping_dpi;
+    if (left_config->pointer_sniping_dpi > CHARYBDIS_SNIPING_DPI_MAX_STEP) {
+        left_config->pointer_sniping_dpi = 0; // 100 DPI
+    }
     left_config->is_dragscroll_enabled = dual_config.left_is_dragscroll_enabled;
     left_config->is_sniping_enabled = false; // Never persist sniping
     
     // Extract right hand config
     right_config->pointer_default_dpi = dual_config.right_pointer_default_dpi;
+    if (right_config->pointer_default_dpi > CHARYBDIS_DEFAULT_DPI_MAX_STEP) {
+        right_config->pointer_default_dpi = 3; // Clamp stale EEPROM value (400 DPI)
+    }
     right_config->pointer_sniping_dpi = dual_config.right_pointer_sniping_dpi;
+    if (right_config->pointer_sniping_dpi > CHARYBDIS_SNIPING_DPI_MAX_STEP) {
+        right_config->pointer_sniping_dpi = 0; // 100 DPI
+    }
     right_config->is_dragscroll_enabled = dual_config.right_is_dragscroll_enabled;
     right_config->is_sniping_enabled = false; // Never persist sniping
 }
@@ -519,6 +531,9 @@ void charybdis_config_dual_sync_handler(uint8_t initiator2target_buffer_size, co
         memcpy(&g_charybdis_config_left, initiator2target_buffer, sizeof(g_charybdis_config_left));
         // Copy right configuration
         memcpy(&g_charybdis_config_right, (const uint8_t*)initiator2target_buffer + sizeof(g_charybdis_config_left), sizeof(g_charybdis_config_right));
+        // Apply updated CPI settings on the slave half
+        maybe_update_pointing_device_cpi(&g_charybdis_config_left, true);
+        maybe_update_pointing_device_cpi(&g_charybdis_config_right, false);
     }
 }
 #endif
